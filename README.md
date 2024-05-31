@@ -4,7 +4,7 @@
 
 # Training Phi3-V with PEFT
 
-This repository contains a script for training the Phi3-V model with Parameter-Efficient Fine-Tuning (PEFT) techniques using various configurations and options.
+This repository contains a script for training the [Phi3-V model](https://huggingface.co/microsoft/Phi-3-vision-128k-instruct) with Parameter-Efficient Fine-Tuning (PEFT) techniques using various configurations and options.
 
 ## Table of Contents
 

@@ -4,7 +4,7 @@
 
 # 使用 PEFT 训练 Phi3-V
 
-本仓库包含一个使用参数高效微调（PEFT）技术训练 Phi3-V 模型的脚本，支持各种配置和选项。
+本仓库包含一个使用参数高效微调（PEFT）技术训练 [Phi3-V 模型](https://huggingface.co/microsoft/Phi-3-vision-128k-instruct)的脚本，支持各种配置和选项。
 
 ## 目录
 
