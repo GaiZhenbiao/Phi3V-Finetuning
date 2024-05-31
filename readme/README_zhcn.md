@@ -138,6 +138,9 @@ bash scripts/train.sh
 - [ ] 添加对 DeepSpeed ZeRO-3 的支持。
 - [ ] 添加对 FSDP 的支持。
 - [ ] 添加对全量微调的支持。
+- [ ] 增加Grounding微调支持
+- [ ] 支持多图微调
+- [ ] [川虎 Chat](https://github.com/GaiZhenbiao/ChuanhuChatGPT) 集成
 
 ## 许可证
 

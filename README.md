@@ -138,6 +138,9 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 - [ ] Add support for DeepSpeed ZeRO-3.
 - [ ] Add support for FSDP
 - [ ] Add support for full finetuning
+- [ ] Add support for grounded finetuning
+- [ ] Add support for multi-image finetuning
+- [ ] Intergration with [Chuanhu Chat](https://github.com/GaiZhenbiao/ChuanhuChatGPT)
 
 ## License
 
