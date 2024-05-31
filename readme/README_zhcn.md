@@ -1,5 +1,5 @@
 <div align="right">
-  简体中文 | <a title="English" href="../README.md">简体中文</a></a>
+  简体中文 | <a title="English" href="../README.md">English</a></a>
 </div>
 
 # 使用 PEFT 训练 Phi3-V
