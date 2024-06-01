@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Modified by Github@GaiZhenbiao
-
 """ Phi-3-V model configuration"""
 
 
@@ -97,7 +95,7 @@ class Phi3VConfig(PretrainedConfig):
         sliding_window (`int`, *optional*):
             Sliding window attention window size. If `None`, no sliding window is applied.
         embd_layer (`str`, *optional*, defaults to `"default"`):
-            The embedding layer to use. Can be either `"default"` or `"image"`. "default" uses the standard embedding for text.
+            The embedding layer to use. Can be either `"default"` or `"image"`. "default" uses the standard embedding for text. 
 
     Example:
 

@@ -164,3 +164,6 @@ cython_debug/
 output
 tf-logs
 .Phi-3-vision-128k-instruct
+tmp/
+scripts_tmp/
+logs/*.log

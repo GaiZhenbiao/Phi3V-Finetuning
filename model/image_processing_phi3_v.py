@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Modified by Github@GaiZhenbiao
-
 """Image processor class for Phi3-V."""
 
 from typing import List, Optional, Union
@@ -56,15 +54,15 @@ def padding_336(b):
 
     return b
 
-def calc_padded_size(width, height, padding_unit=336):
-    target_height = int(np.ceil(height / padding_unit) * padding_unit)
-    top_padding = int((target_height - height) / 2)
-    bottom_padding = target_height - height - top_padding
-    left_padding = 0
-    right_padding = 0
-    padded_width = width + left_padding + right_padding
-    padded_height = height + top_padding + bottom_padding
-    return padded_width, padded_height
+def calc_padded_size(width, height, padding_unit=336):  
+    target_height = int(np.ceil(height / padding_unit) * padding_unit)  
+    top_padding = int((target_height - height) / 2)  
+    bottom_padding = target_height - height - top_padding  
+    left_padding = 0  
+    right_padding = 0  
+    padded_width = width + left_padding + right_padding  
+    padded_height = height + top_padding + bottom_padding  
+    return padded_width, padded_height  
 
 def HD_transform(img, hd_num=16):
     width, height = img.size
@@ -89,27 +87,27 @@ def HD_transform(img, hd_num=16):
 
     return img
 
-def calc_hd_transform_size(width, height, hd_num=16):
-    transposed = False
-    if width < height:
-        width, height = height, width
-        transposed = True
-
-    ratio = width / height
-    scale = 1
-    while scale * np.ceil(scale / ratio) <= hd_num:
-        scale += 1
-    scale -= 1
-
-    new_width = int(scale * 336)
-    new_height = int(new_width / ratio)
-
-    padded_width, padded_height = calc_padded_size(new_width, new_height)
-
-    if transposed:
-        padded_width, padded_height = padded_height, padded_width
-
-    return padded_width, padded_height
+def calc_hd_transform_size(width, height, hd_num=16):  
+    transposed = False  
+    if width < height:  
+        width, height = height, width  
+        transposed = True  
+  
+    ratio = width / height  
+    scale = 1  
+    while scale * np.ceil(scale / ratio) <= hd_num:  
+        scale += 1  
+    scale -= 1  
+  
+    new_width = int(scale * 336)  
+    new_height = int(new_width / ratio)  
+  
+    padded_width, padded_height = calc_padded_size(new_width, new_height)  
+      
+    if transposed:  
+        padded_width, padded_height = padded_height, padded_width  
+  
+    return padded_width, padded_height  
 
 def pad_to_max_num_crops_tensor(images, max_crops=5):
     """
@@ -154,10 +152,10 @@ class Phi3VImageProcessor(BaseImageProcessor):
         self.image_mean = image_mean if image_mean is not None else OPENAI_CLIP_MEAN
         self.image_std = image_std if image_std is not None else OPENAI_CLIP_STD
         self.do_convert_rgb = do_convert_rgb
-
+    
     def calc_num_image_tokens(
-            self,
-            images: ImageInput
+            self, 
+            images: ImageInput 
     ):
         """ Calculate the number of image tokens for each image.
         Args:
@@ -175,7 +173,7 @@ class Phi3VImageProcessor(BaseImageProcessor):
 
         images = [image.convert('RGB') for image in images]
         # (H, W, C)
-        elems = [HD_transform(im, hd_num = self.num_crops) for im in images]
+        elems = [HD_transform(im, hd_num = self.num_crops) for im in images] 
         shapes = [[im.size[1], im.size[0]] for im in elems]
         num_img_tokens = [int((h//336*w//336+1)*144 + 1 + (h//336+1)*12) for h, w in shapes]
         return num_img_tokens
@@ -187,8 +185,8 @@ class Phi3VImageProcessor(BaseImageProcessor):
             width (`int`): Width of the image.
             height (`int`): Height of the image.
         """
-        new_width, new_height = calc_hd_transform_size(width, height, hd_num=self.num_crops)
-        num_img_tokens = int((new_height // 336 * new_width // 336 + 1) * 144 + 1 + (new_height // 336 + 1) * 12)
+        new_width, new_height = calc_hd_transform_size(width, height, hd_num=self.num_crops)  
+        num_img_tokens = int((new_height // 336 * new_width // 336 + 1) * 144 + 1 + (new_height // 336 + 1) * 12)  
         return num_img_tokens
 
     def preprocess(
@@ -244,10 +242,10 @@ class Phi3VImageProcessor(BaseImageProcessor):
         # HD_transform pad images to size of multiiply of 336, 336
         # convert to RGB first
         images = [image.convert('RGB') for image in images]
-        elems = [HD_transform(im, hd_num = self.num_crops) for im in images]
+        elems = [HD_transform(im, hd_num = self.num_crops) for im in images] 
         # tensor transform and normalize
         hd_images = [img_processor(im) for im in elems]
-        # create global image
+        # create global image 
         global_image = [torch.nn.functional.interpolate(im.unsqueeze(0).float(), size=(336, 336), mode='bicubic',).to(im.dtype) for im in hd_images]
 
         # [(3, h, w)], where h, w is multiple of 336
@@ -266,7 +264,7 @@ class Phi3VImageProcessor(BaseImageProcessor):
         padded_images = image_transformed
         image_sizes = shapes
 
-        data = {"pixel_values": padded_images,
+        data = {"pixel_values": padded_images, 
                 "image_sizes": image_sizes,
                 "num_img_tokens": num_img_tokens
                 }
