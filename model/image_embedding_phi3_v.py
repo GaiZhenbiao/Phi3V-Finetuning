@@ -13,16 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Modified by Github@GaiZhenbiao
-
 import math
 import torch
 import torch.nn as nn
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from transformers import CLIPVisionModel, PretrainedConfig
-from transformers import CLIPVisionConfig
+from transformers import CLIPVisionConfig 
 from transformers.utils import logging
-from datetime import datetime
+from datetime import datetime 
 
 logger = logging.get_logger(__name__)
 
@@ -40,7 +37,7 @@ CLIP_VIT_LARGE_PATCH14_336_CONFIG = CLIPVisionConfig(
   num_channels=3,
   num_hidden_layers=24,
   patch_size=14,
-  projection_dim=768
+  projection_dim=768 
 )
 
 class Phi3ImageEmbedding(nn.Module):
@@ -120,7 +117,6 @@ class Phi3ImageEmbedding(nn.Module):
             self.type_feature = 'patch'
 
 
-
     def set_img_features(self, img_features: torch.FloatTensor) -> None:
         self.img_features = img_features
 
@@ -131,9 +127,6 @@ class Phi3ImageEmbedding(nn.Module):
         LAYER_IDX = self.layer_idx
         TYPE_FEATURE = self.type_feature
 
-        # import colorama
-        # img_embeds = img_embeds.to(self.img_processor.device)
-        # print(colorama.Back.YELLOW + f"img_embeds device: {img_embeds.device}, self.img_processor device: {self.img_processor.device}" + colorama.Style.RESET_ALL)
         img_processor_output = self.img_processor(img_embeds, output_hidden_states=True)
         img_feature = img_processor_output.hidden_states[LAYER_IDX]
 
@@ -164,15 +157,15 @@ class Phi3ImageEmbedding(nn.Module):
 
         with torch.no_grad():
             positions = torch.nonzero((input_ids < 0) & (input_ids > -MAX_INPUT_ID), as_tuple=False)
-
+        
         select = False
 
-        if isinstance(self.img_projection, nn.Sequential):
-            target_device = self.img_projection[0].bias.device
-            target_dtype = self.img_projection[0].bias.dtype
-        else:  # It's a single nn.Linear layer
-            target_device = self.img_projection.bias.device
-            target_dtype = self.img_projection.bias.dtype
+        if isinstance(self.img_projection, nn.Sequential):  
+            target_device = self.img_projection[0].bias.device  
+            target_dtype = self.img_projection[0].bias.dtype  
+        else:  # It's a single nn.Linear layer  
+            target_device = self.img_projection.bias.device  
+            target_dtype = self.img_projection.bias.dtype  
 
         if len(positions.tolist()) > 0:
             with torch.no_grad():
@@ -187,8 +180,6 @@ class Phi3ImageEmbedding(nn.Module):
                 start_time = datetime.now()
                 bs = img_embeds.shape[0]
                 # Nx(HW)xC
-                # import colorama
-                # print(colorama.Back.YELLOW + f"img_embeds device: {img_embeds.device}" + colorama.Style.RESET_ALL)
                 img_features = self.get_img_features(img_embeds.flatten(0, 1))
                 base_feat_height = base_feat_width = int(img_features.shape[1] ** 0.5)
 
@@ -206,7 +197,7 @@ class Phi3ImageEmbedding(nn.Module):
                     img_sizes = img_sizes.view(-1, 2)
                 for _bs in range(bs):
                     h, w = img_sizes[_bs]
-                    h = h // 336
+                    h = h // 336 
                     w = w // 336
                     B_ = h * w
 
@@ -244,7 +235,7 @@ class Phi3ImageEmbedding(nn.Module):
                     temp_len = int((h*w+1)*144 + 1 + (h+1)*12)
                     assert temp_len == output_imgs[-1].shape[1], f'temp_len: {temp_len}, output_imgs[-1].shape[1]: {output_imgs[-1].shape[1]}'
                     output_len.append(temp_len)
-
+                
                 num_img_tokens = output_len
                 img_set_tensor = []
                 for _output_img in output_imgs:
@@ -276,10 +267,10 @@ class Phi3ImageEmbedding(nn.Module):
             else:
                 raise NotImplementedError
             select = True
-
+        
         with torch.no_grad():
             input_ids.clamp_min_(0).clamp_max_(self.vocab_size)
-
+        
         hidden_states = self.wte(input_ids)
 
         if select:

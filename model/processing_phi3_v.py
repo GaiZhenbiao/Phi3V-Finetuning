@@ -167,19 +167,56 @@ class Phi3VProcessor(ProcessorMixin):
             new_parts = []
             current_role = None
             for p in parts:
-                if p in ["<|user|>\n", "<|end|>\n", "<|assistant|>\n"]:
+                if p in ["<|user|>\n", "<|assistant|>\n", "<|end|>\n"]:
                     if p == "<|user|>\n":
                         current_role = "user"
                     elif p == "<|assistant|>\n":
                         current_role = "assistant"
-                    new_parts.append({"role": "sep", "content": p})
+                    sep = 'sep' + str(["<|user|>\n", "<|assistant|>\n", "<|end|>\n"].index(p))
+                    new_parts.append({"role": sep, "content": p})
                 else:
                     new_parts.append({"role": current_role, "content": p})
             return new_parts
 
         if not len(images):
             model_inputs = self.tokenizer(texts, return_tensors=return_tensors, padding=padding, truncation=truncation, max_length=max_length)
-            return BatchFeature(data={**model_inputs})
+            # prompt_chunks = []
+            label_prompt_chunks = []
+            # the behavior of the tokenizer is very very weird, what I observed is concluded by the following:
+            # 1. "<|user|>\n" is encoded as 3 tokens, while "<|assistant|>\n" is encoded as 1 tokens
+            # 2. tokenizing "I am here" and "\nI am here", the tokens of "I" is different ("I" can be any word and is used as an example here)
+            # 3. when tokenizing "<|user|>\nI am here", the tokens of "I" follows the tokenization of "I" in "\nI am here"
+            # 4. when tokenizing "<|assistant|>\nI am here", the tokens of "I" follows the tokenization of "I" in "I am here"
+            # [Edited by zhenwei - 2024-06-01 22:25]
+            for chunk in split_with_roles(texts):
+                if chunk["role"] in ["sep2", "assistant"]:
+                    tmp_input_ids = self.tokenizer(chunk["content"], add_special_tokens=False).input_ids
+                    # prompt_chunks.append(tmp_input_ids)
+                    label_prompt_chunks.append(tmp_input_ids)
+                elif chunk["role"] in ["sep0", "sep1", "user"]:
+                    tmp_input_ids = self.tokenizer('\n' + chunk["content"], add_special_tokens=False).input_ids[2:]
+                    # prompt_chunks.append(tmp_input_ids)
+                    label_prompt_chunks.append([-100 for _ in range(len(tmp_input_ids))])
+                else:
+                    raise ValueError(f"Unknown role: {chunk['role']}")
+
+            labels = [-100]
+            for chunk in label_prompt_chunks:
+                labels.extend(chunk)
+            # input_ids = [1]
+            # for chunk in prompt_chunks:
+            #     input_ids.extend(chunk)
+
+            labels = torch.tensor(labels, dtype=torch.long).unsqueeze(0)
+            # with open('tmp/input_ids.txt', 'w') as f:
+            #     print(texts, file=f)
+            #     print(split_with_roles(texts), file=f)
+            #     print("input_ids_before", file=f)
+            #     print(model_inputs['input_ids'][0].tolist(), file=f)
+            #     print("input_ids", file=f)
+            #     print(input_ids, file=f)
+            assert labels.shape[1] == model_inputs['input_ids'].shape[1], f"labels length: {labels.shape[1]}, input_ids length: {model_inputs['input_ids'].shape[1]}"
+            return BatchFeature(data={**model_inputs, "labels": labels})
 
 
         if 'num_img_tokens' in images:
@@ -209,25 +246,26 @@ class Phi3VProcessor(ProcessorMixin):
         prompt_chunks = []
         label_prompt_chunks = []
         for chunk in split_with_roles(texts):
-            if chunk["role"] == "sep" or chunk["role"] == "assistant":
-                tmp_input_ids = self.tokenizer(chunk["content"]).input_ids
+            if chunk["role"] in ["sep2", "assistant"]:
+                tmp_input_ids = self.tokenizer(chunk["content"], add_special_tokens=False).input_ids
                 prompt_chunks.append(tmp_input_ids)
                 label_prompt_chunks.append(tmp_input_ids)
-            elif chunk["role"] == "user":
+            elif chunk["role"] in ["sep0", "sep1", "user"]:
                 if chunk["content"] == "<|image_1|>":
                     tmp_input_ids = image_ids_pad.pop(0)
                 else:
-                    tmp_input_ids = self.tokenizer(chunk["content"]).input_ids
+                    tmp_input_ids = self.tokenizer('\n' + chunk["content"], add_special_tokens=False).input_ids[2:]
                 prompt_chunks.append(tmp_input_ids)
                 label_prompt_chunks.append([-100 for _ in range(len(tmp_input_ids))])
+            else:
+                raise ValueError(f"Unknown role: {chunk['role']}")
 
-        input_ids = []
-        labels = []
+        input_ids = [1]
+        labels = [-100]
         for chunk in prompt_chunks:
             input_ids.extend(chunk)
         for chunk in label_prompt_chunks:
             labels.extend(chunk)
-
         input_ids = torch.tensor(input_ids, dtype=torch.long).unsqueeze(0)
         labels = torch.tensor(labels, dtype=torch.long).unsqueeze(0)
         attention_mask = (input_ids > -1000000).to(torch.long)

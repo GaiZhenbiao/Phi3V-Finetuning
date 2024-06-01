@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Modified by Github@GaiZhenbiao
-
 """ PyTorch Phi-3-V model."""
 
 import inspect
@@ -27,7 +25,6 @@ import torch.nn.functional as F
 import torch.utils.checkpoint
 from torch import nn
 from torch.nn import BCEWithLogitsLoss, CrossEntropyLoss, MSELoss
-from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from transformers.activations import ACT2FN
 from transformers.cache_utils import Cache, DynamicCache
@@ -52,13 +49,13 @@ from .configuration_phi3_v import Phi3VConfig
 from .image_embedding_phi3_v import Phi3ImageEmbedding
 
 
-# if is_flash_attn_2_available():
-#     from flash_attn import flash_attn_func, flash_attn_varlen_func
-#     from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input  # noqa
-
-#     _flash_supports_window_size = "window_size" in list(inspect.signature(flash_attn_func).parameters)
-
 logger = logging.get_logger(__name__)
+
+if is_flash_attn_2_available():
+    from flash_attn import flash_attn_func, flash_attn_varlen_func
+    from flash_attn.bert_padding import index_first_axis, pad_input, unpad_input  # noqa
+
+    _flash_supports_window_size = "window_size" in list(inspect.signature(flash_attn_func).parameters)
 
 _CHECKPOINT_FOR_DOC = "microsoft/Phi-3-vision-128k-instruct"
 _CONFIG_FOR_DOC = "Phi3VConfig"
@@ -1003,8 +1000,8 @@ PHI3V_INPUTS_DOCSTRING = r"""
             is useful if you want more control over how to convert `input_ids` indices into associated vectors than the
             model's internal embedding lookup matrix.
         pixel_values (`torch.FloatTensor` of shape `(batch_size, num_channels, image_size, image_size)):
-            The tensors corresponding to the input images. Pixel values can be obtained using [`AutoImageProcessor`].
-            See [`Phi3ImageProcessor.__call__`] for details.
+            The tensors corresponding to the input images. Pixel values can be obtained using [`AutoImageProcessor`]. 
+            See [`Phi3ImageProcessor.__call__`] for details. 
         image_sizes (`torch.LongTensor` of shape `(batch_size, 2)`, *optional*):
             The sizes of the images in the batch, being (height, width) for each image.
         use_cache (`bool`, *optional*):
@@ -1049,7 +1046,7 @@ class Phi3VModel(Phi3VPreTrainedModel):
                 **config.embd_layer
             }
             self.vision_embed_tokens = Phi3ImageEmbedding(config, wte=self.embed_tokens, **embedding_config)
-            # # set wte the same for vision embedding
+            # # set wte the same for vision embedding 
             # self.vision_embed_tokens.wte.weight = self.embed_tokens.weight
 
         self.layers = nn.ModuleList(
@@ -1128,8 +1125,6 @@ class Phi3VModel(Phi3VPreTrainedModel):
         if inputs_embeds is None:
             if pixel_values is not None and image_sizes is not None:
                 assert self.vision_embed_tokens is not None, "Vision embedding layer is not defined"
-                # import colorama
-                # print(colorama.Back.YELLOW + f"input_ids device: {input_ids.device}, pixel_values device: {pixel_values.device}, image_sizes device: {image_sizes.device}" + colorama.Style.RESET_ALL)
                 inputs_embeds = self.vision_embed_tokens(input_ids, pixel_values=pixel_values, image_sizes=image_sizes)
             else:
                 inputs_embeds = self.embed_tokens(input_ids)
