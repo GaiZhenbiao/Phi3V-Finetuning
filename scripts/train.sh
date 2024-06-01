@@ -21,4 +21,4 @@ accelerate launch train_phi3v.py \
     --lora_alpha 256 \
     --lora_dropout 0.05 \
     --logging_steps 1 \
-    --dataloader_num_workers 4 | tee 2>&1 logs/$(date +"%Y-%m-%d_%H_%M").log
+    --dataloader_num_workers 4 | tee logs/$(date +"%Y-%m-%d_%H_%M").log

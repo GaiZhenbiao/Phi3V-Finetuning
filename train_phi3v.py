@@ -322,6 +322,9 @@ def train():
 
     trainer.save_model(args.output_dir)
 
+    used_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
+    print(f"Peak reserved memory in GPU {local_rank} = {used_memory} GB.")
+
 
 if __name__ == "__main__":
     train()
