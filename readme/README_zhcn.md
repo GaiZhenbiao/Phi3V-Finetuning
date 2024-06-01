@@ -74,20 +74,22 @@ bash scripts/train.sh
 - `--image_folder` (str): LLaVA 格式的训练数据中引用的图像文件夹路径。**（必需）**
 - `--model_id` (str): Phi3-V 模型的路径。**（必需）**
 - `--proxy` (str): 代理设置（默认：无）。
-- `--output_dir` (str): 模型checkpoint的输出目录（默认："output/test_train"）。
-- `--num_train_epochs` (int): 训练epoch数（默认：1）。
-- `--batch_size` (int): 训练批量大小（默认：1）。
+- `--output_dir` (str): 模型 checkpoint 的输出目录（默认："output/test_train"）。
+- `--num_train_epochs` (int): 训练 epoch 数（默认：1）。
+- `--per_device_train_batch_size` (int): 每个 GPU 每个前向步骤的训练批量大小。
 - `--gradient_accumulation_steps` (int): 梯度累积步骤（默认：4）。
 - `--deepspeed_config` (str): DeepSpeed 配置文件的路径（默认："scripts/zero2.json"）。
-- `--target_modules` (int): 要训练的目标模块数（-1 表示所有层）（默认：-1）。
+- `--num_lora_modules` (int): 要添加 LoRA 的目标模块数（-1 表示所有层）。
+- `--lora_namespan_exclude` (str): 排除具有名称范围的模块以添加 LoRA。
 - `--max_seq_length` (int): 最大序列长度（默认：3072）。
 - `--quantization` (flag): 启用量化。
-- `--report_to` (str): 报告工具（选项：'tensorboard', 'wandb'）（默认：'tensorboard'）。
+- `--disable_flash_attn2` (flag): 禁用 Flash Attention 2。
+- `--report_to` (str): 报告工具（选项：'tensorboard', 'wandb', 'none'）（默认：'tensorboard'）。
 - `--logging_dir` (str): 日志目录（默认："./tf-logs"）。
 - `--lora_rank` (int): LoRA rank（默认：128）。
 - `--lora_alpha` (int): LoRA alpha（默认：256）。
 - `--lora_dropout` (float): LoRA dropout（默认：0.05）。
-- `--logging_steps` (int): 每隔几步打印日志（默认：1）。
+- `--logging_steps` (int): 日志记录步骤（默认：1）。
 - `--dataloader_num_workers` (int): 数据加载器工作线程数（默认：4）。
 
 ## 数据集准备
@@ -154,7 +156,7 @@ bash scripts/train.sh
 
 ```bibtex
 @misc{phi3vfinetuning2023,
-  author = {Gai Zhenbiao},
+  author = {Gai Zhenbiao & Shao Zhenwei},
   title = {Phi3V-Finetuning},
   year = {2023},
   publisher = {GitHub},

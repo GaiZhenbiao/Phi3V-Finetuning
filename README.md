@@ -76,13 +76,15 @@ bash scripts/train.sh
 - `--proxy` (str): Proxy settings (default: None).
 - `--output_dir` (str): Output directory for model checkpoints (default: "output/test_train").
 - `--num_train_epochs` (int): Number of training epochs (default: 1).
-- `--batch_size` (int): Training batch size (default: 1).
+- `--per_device_train_batch_size` (int): Training batch size per GPU per forwarding step.
 - `--gradient_accumulation_steps` (int): Gradient accumulation steps (default: 4).
 - `--deepspeed_config` (str): Path to DeepSpeed config file (default: "scripts/zero2.json").
-- `--target_modules` (int): Number of target modules to train (-1 means all layers) (default: -1).
+- `--num_lora_modules` (int): Number of target modules to add LoRA (-1 means all layers).
+- `--lora_namespan_exclude` (str): Exclude modules with namespans to add LoRA.
 - `--max_seq_length` (int): Maximum sequence length (default: 3072).
 - `--quantization` (flag): Enable quantization.
-- `--report_to` (str): Reporting tool (choices: 'tensorboard', 'wandb') (default: 'tensorboard').
+- `--disable_flash_attn2` (flag): Disable Flash Attention 2.
+- `--report_to` (str): Reporting tool (choices: 'tensorboard', 'wandb', 'none') (default: 'tensorboard').
 - `--logging_dir` (str): Logging directory (default: "./tf-logs").
 - `--lora_rank` (int): LoRA rank (default: 128).
 - `--lora_alpha` (int): LoRA alpha (default: 256).
@@ -154,7 +156,7 @@ If you use this codebase in your work, please cite this project:
 
 ```bibtex
 @misc{phi3vfinetuning2023,
-  author = {Gai Zhenbiao},
+  author = {Gai Zhenbiao & Shao Zhenwei},
   title = {Phi3V-Finetuning},
   year = {2023},
   publisher = {GitHub},
