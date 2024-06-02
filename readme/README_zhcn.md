@@ -54,9 +54,9 @@ pip install -U "huggingface_hub[cli]"
 huggingface-cli download microsoft/Phi-3-vision-128k-instruct --local-dir Phi-3-vision-128k-instruct --resume-download
 ```
 
-3. 替换模型文件：
+<!-- 3. 替换模型文件：
 
-将 `Phi-3-vision-128k-instruct` 目录下的模型文件替换为 `overwrites/Phi-3-vision-128k-instruct` 目录下的文件。
+将 `Phi-3-vision-128k-instruct` 目录下的模型文件替换为 `overwrites/Phi-3-vision-128k-instruct` 目录下的文件。 -->
 
 ## 使用方法
 

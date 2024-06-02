@@ -32,6 +32,7 @@ parser.add_argument("--num_lora_modules", type=int, default=-1, help="Number of 
 parser.add_argument("--lora_namespan_exclude", type=str, default="[]", help="Exclude modules with namespans to add LoRA.")
 parser.add_argument("--max_seq_length", type=int, default=3072, help="Maximum sequence length.")
 parser.add_argument("--quantization", action='store_true', help="Enable quantization.")
+parser.add_argument("--gradient_checkpointing", action='store_true', help="Enable gradient checkpointing.")
 parser.add_argument("--disable_flash_attn2", action='store_true', help="Disable Flash Attention 2.")
 parser.add_argument("--report_to", type=str, choices=['tensorboard', 'wandb', 'none'], default='tensorboard', help="Reporting tool (tensorboard or wandb).")
 parser.add_argument("--logging_dir", type=str, default="./tf-logs", help="Logging directory.")
@@ -241,6 +242,7 @@ def train():
         config._attn_implementation = "eager"
 
     quantization_config = None
+    config.use_cache = False
     if args.quantization:
         quantization_config = BitsAndBytesConfig(
             load_in_4bit=True,
@@ -261,6 +263,15 @@ def train():
     )
     processor = Phi3VProcessor.from_pretrained(args.model_id)
 
+    if args.quantization:
+        model.config.torch_dtype = torch.bfloat16
+        from peft import prepare_model_for_kbit_training
+        model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing, gradient_checkpointing_kwargs={"use_reentrant": False})
+    if args.gradient_checkpointing:
+        model.enable_input_require_grads()
+        model.model.gradient_checkpointing = True
+        rank0_print("Gradient checkpointing:", model.model.gradient_checkpointing)
+
     lora_namespan_exclude = eval(args.lora_namespan_exclude)
     peft_config = LoraConfig(
         r=args.lora_rank,
@@ -270,9 +281,9 @@ def train():
         bias="none",
         task_type="CAUSAL_LM",
     )
-    with open(f'tmp/debug_{local_rank}.txt', 'w') as f:
-        for name, param in model.named_parameters():
-            print(f'{name} {param.shape} {param.dtype} {param.device} {param.requires_grad}', file=f)
+    # with open(f'tmp/debug_{local_rank}.txt', 'w') as f:
+    #     for name, param in model.named_parameters():
+    #         print(f'{name} {param.shape} {param.dtype} {param.device} {param.requires_grad}', file=f)
 
     training_args = TrainingArguments(
         output_dir=args.output_dir,
@@ -319,11 +330,11 @@ def train():
     )
 
     trainer.train()
-
-    trainer.save_model(args.output_dir)
-
     used_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
     print(f"Peak reserved memory in GPU {local_rank} = {used_memory} GB.")
+
+    model.config.use_cache = True
+    trainer.save_model(args.output_dir)
 
 
 if __name__ == "__main__":

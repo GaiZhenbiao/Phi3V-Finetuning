@@ -54,9 +54,9 @@ pip install -U "huggingface_hub[cli]"
 huggingface-cli download microsoft/Phi-3-vision-128k-instruct --local-dir Phi-3-vision-128k-instruct --resume-download
 ```
 
-3. Replace the modeling files:
+<!-- 3. Replace the modeling files:
 
-Replace the modeling files under `Phi-3-vision-128k-instruct` with the ones under `overwrites/Phi-3-vision-128k-instruct`.
+Replace the modeling files under `Phi-3-vision-128k-instruct` with the ones under `overwrites/Phi-3-vision-128k-instruct`. -->
 
 ## Usage
 
