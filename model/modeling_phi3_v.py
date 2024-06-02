@@ -1163,7 +1163,7 @@ class Phi3VModel(Phi3VPreTrainedModel):
                 all_hidden_states += (hidden_states,)
 
             if self.gradient_checkpointing and self.training:
-                layer_outputs = self._gradient_checkpointing_func(
+                layer_outputs = torch.utils.checkpoint.checkpoint(
                     decoder_layer.__call__,
                     hidden_states,
                     attention_mask,
@@ -1171,6 +1171,7 @@ class Phi3VModel(Phi3VPreTrainedModel):
                     past_key_values,
                     output_attentions,
                     use_cache,
+                    use_reentrant=False
                 )
             else:
                 layer_outputs = decoder_layer(

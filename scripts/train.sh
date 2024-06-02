@@ -14,6 +14,7 @@ accelerate launch train_phi3v.py \
     --lora_namespan_exclude "['self_attn', 'lm_head']" \
     --max_seq_length 3072 \
     --quantization \
+    --gradient_checkpointing \
     --disable_flash_attn2 \
     --report_to tensorboard \
     --logging_dir tf-logs \

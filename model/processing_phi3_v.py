@@ -184,9 +184,9 @@ class Phi3VProcessor(ProcessorMixin):
             label_prompt_chunks = []
             # the behavior of the tokenizer is very very weird, what I observed is concluded by the following:
             # 1. "<|user|>\n" is encoded as 3 tokens, while "<|assistant|>\n" is encoded as 1 tokens
-            # 2. tokenizing "I am here" and "\nI am here", the tokens of "I" is different ("I" can be any word and is used as an example here)
-            # 3. when tokenizing "<|user|>\nI am here", the tokens of "I" follows the tokenization of "I" in "\nI am here"
-            # 4. when tokenizing "<|assistant|>\nI am here", the tokens of "I" follows the tokenization of "I" in "I am here"
+            # 2. tokenizing "I am here" and "\nI am here", the tokens of "I" in these two cases are different ("I" can be any word and is used as an example here)
+            # 3. when tokenizing "<|user|>\nI am here", the tokens of "I" follow the tokenization of "I" in "\nI am here"
+            # 4. when tokenizing "<|assistant|>\nI am here", the tokens of "I" follow the tokenization of "I" in "I am here"
             # [Edited by zhenwei - 2024-06-01 22:25]
             for chunk in split_with_roles(texts):
                 if chunk["role"] in ["sep2", "assistant"]:
