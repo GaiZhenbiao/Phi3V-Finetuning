@@ -41,6 +41,7 @@ parser.add_argument("--lora_alpha", type=int, default=256, help="LoRA alpha.")
 parser.add_argument("--lora_dropout", type=float, default=0.05, help="LoRA dropout.")
 parser.add_argument("--logging_steps", type=int, default=1, help="Logging steps.")
 parser.add_argument("--dataloader_num_workers", type=int, default=4, help="Number of data loader workers.")
+parser.add_argument("--freeze_vision", action='store_true', help="Freeze vision backbone.")
 
 logger = logging.getLogger(__name__)
 
@@ -262,6 +263,14 @@ def train():
         quantization_config=quantization_config
     )
     processor = Phi3VProcessor.from_pretrained(args.model_id)
+
+    if args.freeze_vision:
+        for p in model.model.vision_embed_tokens.img_processor.parameters():
+            p.requires_grad = False
+
+    else:
+        for p in model.model.vision_embed_tokens.img_processor.parameters():
+            p.requires_grad = True
 
     if args.quantization:
         model.config.torch_dtype = torch.bfloat16
