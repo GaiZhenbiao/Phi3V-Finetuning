@@ -172,10 +172,10 @@ class Phi3VProcessor(ProcessorMixin):
                         current_role = "user"
                     elif p == "<|assistant|>\n":
                         current_role = "assistant"
-                    sep = 'sep' + str(["<|user|>\n", "<|assistant|>\n", "<|end|>\n"].index(p))
-                    new_parts.append({"role": sep, "content": p})
+                    _type = ["<|user|>\n", "<|assistant|>\n", "<|end|>\n"].index(p) + 1
+                    new_parts.append({"role": current_role, "content": p, "type": _type})
                 else:
-                    new_parts.append({"role": current_role, "content": p})
+                    new_parts.append({"role": current_role, "content": p, "type": 0})
             return new_parts
 
         if not len(images):
@@ -189,16 +189,14 @@ class Phi3VProcessor(ProcessorMixin):
             # 4. when tokenizing "<|assistant|>\nI am here", the tokens of "I" follow the tokenization of "I" in "I am here"
             # [Edited by zhenwei - 2024-06-01 22:25]
             for chunk in split_with_roles(texts):
-                if chunk["role"] in ["sep2", "assistant"]:
+                if chunk["role"] == "assistant" and chunk['type'] in [0, 3]:
                     tmp_input_ids = self.tokenizer(chunk["content"], add_special_tokens=False).input_ids
                     # prompt_chunks.append(tmp_input_ids)
                     label_prompt_chunks.append(tmp_input_ids)
-                elif chunk["role"] in ["sep0", "sep1", "user"]:
+                else:
                     tmp_input_ids = self.tokenizer('\n' + chunk["content"], add_special_tokens=False).input_ids[2:]
                     # prompt_chunks.append(tmp_input_ids)
                     label_prompt_chunks.append([-100 for _ in range(len(tmp_input_ids))])
-                else:
-                    raise ValueError(f"Unknown role: {chunk['role']}")
 
             labels = [-100]
             for chunk in label_prompt_chunks:
@@ -246,19 +244,17 @@ class Phi3VProcessor(ProcessorMixin):
         prompt_chunks = []
         label_prompt_chunks = []
         for chunk in split_with_roles(texts):
-            if chunk["role"] in ["sep2", "assistant"]:
+            if chunk["role"] == "assistant" and chunk['type'] in [0, 3]:
                 tmp_input_ids = self.tokenizer(chunk["content"], add_special_tokens=False).input_ids
                 prompt_chunks.append(tmp_input_ids)
                 label_prompt_chunks.append(tmp_input_ids)
-            elif chunk["role"] in ["sep0", "sep1", "user"]:
+            else:
                 if chunk["content"] == "<|image_1|>":
                     tmp_input_ids = image_ids_pad.pop(0)
                 else:
                     tmp_input_ids = self.tokenizer('\n' + chunk["content"], add_special_tokens=False).input_ids[2:]
                 prompt_chunks.append(tmp_input_ids)
                 label_prompt_chunks.append([-100 for _ in range(len(tmp_input_ids))])
-            else:
-                raise ValueError(f"Unknown role: {chunk['role']}")
 
         input_ids = [1]
         labels = [-100]
