@@ -7,6 +7,7 @@ accelerate launch train_phi3v.py \
     --model_id /path/to/Phi-3-vision-128k-instruct \
     --output_dir output/test_train_lora \
     --num_train_epochs 1 \
+    --freeze_vision \
     --per_device_train_batch_size 1 \
     --gradient_accumulation_steps 8 \
     --deepspeed_config scripts/zero2.json \
