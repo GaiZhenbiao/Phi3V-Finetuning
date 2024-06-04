@@ -277,22 +277,37 @@ class Phi3ImageEmbedding(nn.Module):
             if hd_transform:
                 idx = 0
                 for i, cnt in enumerate(num_img_tokens):
-                    hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = (
-                        img_set_tensor[i]
-                        .to(hidden_states.dtype)
-                        .to(hidden_states.device)
-                        )
-                    idx += cnt
+                    
+                    # hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = (
+                    #     img_set_tensor[i]
+                    #     .to(hidden_states.dtype)
+                    #     .to(hidden_states.device)
+                    #     )
+                    # idx += cnt
+
+                    new_tensor = img_set_tensor[i].to(hidden_states.dtype).to(hidden_states.device)
+                    # Update hidden_states with the new tensor
+                    hidden_states = hidden_states.clone()  # Clone to avoid in-place modification
+                    hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = new_tensor
+                    idx += cnt   
             else:
                 idx = 0
                 assert len(selected_g_values) * self.num_img_tokens == len(img_set_tensor), f'len(selected_g_values) * self.num_img_tokens = {len(selected_g_values) * self.num_img_tokens}, len(img_set_tensor) = {len(img_set_tensor)}'
                 for i, g in enumerate(selected_g_values):
                     cnt = self.num_img_tokens
-                    hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = (
-                        img_set_tensor[i * cnt : (i + 1) * cnt]
-                        .to(hidden_states.dtype)
-                        .to(hidden_states.device)
-                        )
+                    
+                    # hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = (
+                    #     img_set_tensor[i * cnt : (i + 1) * cnt]
+                    #     .to(hidden_states.dtype)
+                    #     .to(hidden_states.device)
+                    #     )
+                    # idx += cnt
+
+                    # Create a new tensor to hold the result
+                    new_tensor = img_set_tensor[i * cnt : (i + 1) * cnt].to(hidden_states.dtype).to(hidden_states.device)
+                    # Update hidden_states with the new tensor
+                    hidden_states = hidden_states.clone()  # Clone to avoid in-place modification
+                    hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = new_tensor
                     idx += cnt
 
         if self.drop is not None:
