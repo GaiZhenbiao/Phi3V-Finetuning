@@ -21,6 +21,15 @@ This repository contains a script for training the [Phi3-V model](https://huggin
   - [License](#license)
   - [Citation](#citation)
 
+## Supported Features
+
+- Training on the mixture of NLP data and vision-language data
+- Deepspeed Zero-2
+- Deepspeed Zero-3
+- Gradient checkpointing (only compatible with ZeRO-3 for now)
+- QLoRA
+- Disable/enable Flash Attention 2
+
 ## Installation
 
 Install the required packages using either `requirements.txt` or `environment.yml`.
