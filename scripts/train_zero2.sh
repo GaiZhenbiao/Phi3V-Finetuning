@@ -7,19 +7,19 @@ accelerate launch train_phi3v.py \
     --model_id /path/to/Phi-3-vision-128k-instruct \
     --output_dir output/test_train_lora \
     --num_train_epochs 1 \
-    --per_device_train_batch_size 1 \
+    --learning_rate 1e-4 \
+    --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 8 \
-    --deepspeed_config scripts/zero2.json \
+    --deepspeed_config scripts/zero3.json \
+    --quantization \
     --num_lora_modules 10 \
     --lora_namespan_exclude "['self_attn', 'lm_head']" \
     --max_seq_length 3072 \
-    --quantization \
-    --gradient_checkpointing \
-    --disable_flash_attn2 \
     --report_to tensorboard \
     --logging_dir tf-logs \
     --lora_rank 128 \
     --lora_alpha 256 \
     --lora_dropout 0.05 \
     --logging_steps 1 \
-    --dataloader_num_workers 4 | tee logs/$(date +"%Y-%m-%d_%H_%M").log
+    --dataloader_num_workers 4 2>&1 | tee logs/$(date +"%Y-%m-%d_%H_%M").log
+    # --disable_flash_attn2 \
