@@ -10,7 +10,7 @@ accelerate launch train_phi3v.py \
     --learning_rate 1e-4 \
     --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 8 \
-    --deepspeed_config scripts/zero3.json \
+    --deepspeed_config scripts/zero2.json \
     --quantization \
     --num_lora_modules 10 \
     --lora_namespan_exclude "['self_attn', 'lm_head']" \
