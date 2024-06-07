@@ -195,11 +195,15 @@ class Phi3ImageEmbedding(nn.Module):
                 # training is tensor, inference is list
                 if isinstance(img_sizes, torch.Tensor):
                     img_sizes = img_sizes.view(-1, 2)
+                num_pure_text = 0
                 for _bs in range(bs):
                     h, w = img_sizes[_bs]
                     h = h // 336 
                     w = w // 336
                     B_ = h * w
+                    if B_ == 0:
+                        num_pure_text += 1
+                        continue
 
                     # 1 x (24x24) x 1024
                     global_img_feature = img_features[_bs, :1]
@@ -267,7 +271,13 @@ class Phi3ImageEmbedding(nn.Module):
             else:
                 raise NotImplementedError
             select = True
-        
+        # It's a hacky way to walkaround the hang-out problem when deepspeed `zero3` is used
+        # and the training batch is a mixture of pure text and vision-language data.
+        else:
+            num_pure_text = input_ids.shape[0]
+            self.get_img_features(img_embeds.flatten(0, 1))
+        for _ in range(num_pure_text):
+            self.img_projection(torch.zeros(1, 1921, 4096, device=self.img_processor.device, dtype=self.img_processor.dtype))
         with torch.no_grad():
             input_ids.clamp_min_(0).clamp_max_(self.vocab_size)
         

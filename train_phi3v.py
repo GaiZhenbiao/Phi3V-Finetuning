@@ -154,7 +154,7 @@ class LazySupervisedDataset(Dataset):
             # )
             if 'pixel_values' not in data_dict:
                 data_dict['pixel_values'] = torch.zeros([1, 17, 3, 336, 336], dtype=torch.bfloat16)
-                data_dict['image_sizes'] = torch.zeros([1, 2], dtype=torch.bfloat16)
+                data_dict['image_sizes'] = torch.zeros([1, 2], dtype=torch.int64)
             data_dict = dict(
                 input_ids=data_dict["input_ids"][0],
                 attention_mask=data_dict["attention_mask"][0],
@@ -236,7 +236,7 @@ def train():
     local_rank = int(os.environ["LOCAL_RANK"])
 
     args = parser.parse_args()
-    rank0_print('Procession args', args)
+    rank0_print('Procession args\033[91m', args, '\033[0m')
     if torch.cuda.is_bf16_supported():
         compute_dtype = torch.bfloat16
     else:
@@ -295,6 +295,9 @@ def train():
     #     for name, param in model.named_parameters():
     #         print(f'{name} {param.shape} {param.dtype} {param.device} {param.requires_grad}', file=f)
 
+    # TODO: make it conpatible with SFTConfig (`from trl import SFTConfig`)
+    # for `trl` of newer version, `TrainingArguments` leads to an error of agument name mismatch,
+    # and we should use `SFTConfig` instead.
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         num_train_epochs=args.num_train_epochs,
