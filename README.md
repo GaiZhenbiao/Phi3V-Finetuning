@@ -147,8 +147,9 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 </details>
 
 ## TODO
-- ✔ Add support for DeepSpeed ZeRO-3.
-- ✔ Add support for FSDP
+- [x] Add support for DeepSpeed ZeRO-3.
+- [x] Add support for FSDP
+- [ ] Add support for simultaneously finetuning `img_projector`
 - [ ] Add support for full finetuning
 - [ ] Add support for grounded finetuning
 - [ ] Add support for multi-image finetuning
