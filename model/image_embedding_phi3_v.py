@@ -287,11 +287,13 @@ class Phi3ImageEmbedding(nn.Module):
             if hd_transform:
                 idx = 0
                 for i, cnt in enumerate(num_img_tokens):
+                    # see https://github.com/GaiZhenbiao/Phi3V-Finetuning/pull/5
+                    hidden_states = hidden_states.clone()
                     hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = (
                         img_set_tensor[i]
                         .to(hidden_states.dtype)
                         .to(hidden_states.device)
-                        )
+                    )
                     idx += cnt
             else:
                 idx = 0
