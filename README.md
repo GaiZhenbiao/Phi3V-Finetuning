@@ -154,6 +154,7 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 - [ ] Add support for full finetuning
 - [ ] Add support for grounded finetuning
 - [ ] Add support for multi-image finetuning
+- [ ] More advanced PEFT method (e.g., DoRA)
 - [ ] FSDP with ActivationCheckpointing Wrapper
 - [ ] Intergration with [Chuanhu Chat](https://github.com/GaiZhenbiao/ChuanhuChatGPT)
 
