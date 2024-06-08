@@ -24,6 +24,7 @@ This repository contains a script for training the [Phi3-V model](https://huggin
 ## Supported Features
 
 - Training on the mixture of NLP data and vision-language data
+- Flexible selection of LoRA target modules
 - Deepspeed Zero-2
 - Deepspeed Zero-3
 - PyTorch FSDP
