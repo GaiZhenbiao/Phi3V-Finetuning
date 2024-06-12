@@ -142,6 +142,9 @@ class LazySupervisedDataset(Dataset):
         prompt = processor.tokenizer.apply_chat_template(
             sources[0], tokenize=False, add_generation_prompt=True
         )
+
+        prompt += processor.tokenizer.eos_token
+
         data_dict = processor(prompt, image, return_tensors="pt")
 
         if self.padding:

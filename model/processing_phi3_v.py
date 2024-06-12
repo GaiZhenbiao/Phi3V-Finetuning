@@ -152,7 +152,11 @@ class Phi3VProcessor(ProcessorMixin):
             start = 0
             sep_len = {sep: len(sep) for sep in separators}
             while start < len(s):
-                index = min((s.find(sep, start), sep) for sep in separators if s.find(sep, start) != -1)
+                indices = [(s.find(sep, start), sep) for sep in separators if s.find(sep, start) != -1]
+                if not indices:
+                    parts.append(s[start:])
+                    break
+                index = min(indices, key=lambda x: x[0])
                 if index[0] == -1:
                     parts.append(s[start:])
                     break
@@ -244,6 +248,7 @@ class Phi3VProcessor(ProcessorMixin):
         prompt_chunks = []
         label_prompt_chunks = []
         for chunk in split_with_roles(texts):
+            print(chunk)
             if chunk["role"] == "assistant" and chunk['type'] in [0, 3]:
                 tmp_input_ids = self.tokenizer(chunk["content"], add_special_tokens=False).input_ids
                 prompt_chunks.append(tmp_input_ids)
