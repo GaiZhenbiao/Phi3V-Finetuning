@@ -195,11 +195,15 @@ class Phi3ImageEmbedding(nn.Module):
                 # training is tensor, inference is list
                 if isinstance(img_sizes, torch.Tensor):
                     img_sizes = img_sizes.view(-1, 2)
+                num_pure_text = 0
                 for _bs in range(bs):
                     h, w = img_sizes[_bs]
                     h = h // 336 
                     w = w // 336
                     B_ = h * w
+                    if B_ == 0:
+                        num_pure_text += 1
+                        continue
 
                     # 1 x (24x24) x 1024
                     global_img_feature = img_features[_bs, :1]
@@ -267,7 +271,13 @@ class Phi3ImageEmbedding(nn.Module):
             else:
                 raise NotImplementedError
             select = True
-        
+        # It's a hacky way to walkaround the hang-out problem when deepspeed `zero3` is used
+        # and the training batch is a mixture of pure text and vision-language data.
+        else:
+            num_pure_text = input_ids.shape[0]
+            self.get_img_features(img_embeds.flatten(0, 1))
+        for _ in range(num_pure_text):
+            self.img_projection(torch.zeros(1, 1921, 4096, device=self.img_processor.device, dtype=self.img_processor.dtype))
         with torch.no_grad():
             input_ids.clamp_min_(0).clamp_max_(self.vocab_size)
         
@@ -277,19 +287,14 @@ class Phi3ImageEmbedding(nn.Module):
             if hd_transform:
                 idx = 0
                 for i, cnt in enumerate(num_img_tokens):
-                    
-                    # hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = (
-                    #     img_set_tensor[i]
-                    #     .to(hidden_states.dtype)
-                    #     .to(hidden_states.device)
-                    #     )
-                    # idx += cnt
-
-                    new_tensor = img_set_tensor[i].to(hidden_states.dtype).to(hidden_states.device)
-                    # Update hidden_states with the new tensor
-                    hidden_states = hidden_states.clone()  # Clone to avoid in-place modification
-                    hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = new_tensor
-                    idx += cnt   
+                    # see https://github.com/GaiZhenbiao/Phi3V-Finetuning/pull/5
+                    hidden_states = hidden_states.clone()
+                    hidden_states[positions[idx, 0], positions[idx, 1] : positions[idx, 1] + cnt] = (
+                        img_set_tensor[i]
+                        .to(hidden_states.dtype)
+                        .to(hidden_states.device)
+                    )
+                    idx += cnt
             else:
                 idx = 0
                 assert len(selected_g_values) * self.num_img_tokens == len(img_set_tensor), f'len(selected_g_values) * self.num_img_tokens = {len(selected_g_values) * self.num_img_tokens}, len(img_set_tensor) = {len(img_set_tensor)}'

@@ -21,6 +21,17 @@ This repository contains a script for training the [Phi3-V model](https://huggin
   - [License](#license)
   - [Citation](#citation)
 
+## Supported Features
+
+- Training on the mixture of NLP data and vision-language data
+- Flexible selection of LoRA target modules
+- Deepspeed Zero-2
+- Deepspeed Zero-3
+- PyTorch FSDP
+- Gradient checkpointing (only compatible with ZeRO-3 for now)
+- QLoRA
+- Disable/enable Flash Attention 2
+
 ## Installation
 
 Install the required packages using either `requirements.txt` or `environment.yml`.
@@ -137,11 +148,14 @@ The script requires a dataset formatted according to the LLaVA specification. Th
 </details>
 
 ## TODO
-- [ ] Add support for DeepSpeed ZeRO-3.
-- [ ] Add support for FSDP
+- [x] Add support for DeepSpeed ZeRO-3.
+- [x] Add support for FSDP
+- [ ] Add support for simultaneously finetuning `img_projector`
 - [ ] Add support for full finetuning
 - [ ] Add support for grounded finetuning
 - [ ] Add support for multi-image finetuning
+- [ ] More advanced PEFT method (e.g., DoRA)
+- [ ] FSDP with ActivationCheckpointing Wrapper
 - [ ] Intergration with [Chuanhu Chat](https://github.com/GaiZhenbiao/ChuanhuChatGPT)
 
 ## License

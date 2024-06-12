@@ -5,6 +5,7 @@ import os
 import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
+import warnings
 
 import torch
 import transformers
@@ -31,7 +32,7 @@ parser.add_argument("--warmup_ratio", type=float, default=0.03, help="Warmup rat
 parser.add_argument("--lr_scheduler_type", type=str, choices=["linear", "cosine"], default='linear', help="Learning rate scheduler.")
 parser.add_argument("--per_device_train_batch_size", type=int, default=1, help="Training batch size per GPU per forwarding step.")
 parser.add_argument("--gradient_accumulation_steps", type=int, default=4, help="Gradient accumulation steps.")
-parser.add_argument("--deepspeed_config", type=str, default="scripts/zero2.json", help="Path to DeepSpeed config file.")
+parser.add_argument("--deepspeed_config", type=str, default=None, help="Path to DeepSpeed config file.")
 parser.add_argument("--num_lora_modules", type=int, default=-1, help="Number of target modules to add LoRA (-1 means all layers).")
 parser.add_argument("--lora_namespan_exclude", type=str, default="[]", help="Exclude modules with namespans to add LoRA.")
 parser.add_argument("--max_seq_length", type=int, default=3072, help="Maximum sequence length.")
@@ -153,7 +154,7 @@ class LazySupervisedDataset(Dataset):
             # )
             if 'pixel_values' not in data_dict:
                 data_dict['pixel_values'] = torch.zeros([1, 17, 3, 336, 336], dtype=torch.bfloat16)
-                data_dict['image_sizes'] = torch.zeros([1, 2], dtype=torch.bfloat16)
+                data_dict['image_sizes'] = torch.zeros([1, 2], dtype=torch.int64)
             data_dict = dict(
                 input_ids=data_dict["input_ids"][0],
                 attention_mask=data_dict["attention_mask"][0],
@@ -233,13 +234,15 @@ def find_target_linear_names(model, num_lora_modules=-1, lora_namespan_exclude=[
 def train():
     global local_rank
     local_rank = int(os.environ["LOCAL_RANK"])
+    ACCELERATE_USE_FSDP = os.environ.get("ACCELERATE_USE_FSDP", "false") == "true"
 
     args = parser.parse_args()
+    rank0_print('Procession args\033[91m', args, '\033[0m')
     if torch.cuda.is_bf16_supported():
         compute_dtype = torch.bfloat16
     else:
         compute_dtype = torch.float16
-    print(compute_dtype)
+    rank0_print('compute_dtype', compute_dtype)
 
     config = Phi3VConfig.from_pretrained(args.model_id)
     if args.disable_flash_attn2:
@@ -271,10 +274,16 @@ def train():
         model.config.torch_dtype = torch.bfloat16
         from peft import prepare_model_for_kbit_training
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing, gradient_checkpointing_kwargs={"use_reentrant": False})
+    
     if args.gradient_checkpointing:
-        model.enable_input_require_grads()
-        model.model.gradient_checkpointing = True
-        rank0_print("Gradient checkpointing:", model.model.gradient_checkpointing)
+        if args.deepspeed_config is not None and 'zero2' in args.deepspeed_config:
+            warnings.warn("``zero2` with `gradient_checkpointing` may lead to errors in some situations, so we disable `gradient_checkpointing` for `zero2` by default. You are welcome to hack this logic and test if the process works as expected (and you may need to comment `model.enable_input_require_grads()`).")
+        else:
+            if ACCELERATE_USE_FSDP:
+                warnings.warn("``gradient_checkpointing`` may not work well with ``fsdp``. We will enable it for you. Please be sure you know what you are doing and aware of the potential errors.")
+            model.enable_input_require_grads()
+            model.model.gradient_checkpointing = True
+            rank0_print("Gradient checkpointing:", model.model.gradient_checkpointing)
 
     lora_namespan_exclude = eval(args.lora_namespan_exclude)
     peft_config = LoraConfig(
@@ -289,10 +298,13 @@ def train():
     #     for name, param in model.named_parameters():
     #         print(f'{name} {param.shape} {param.dtype} {param.device} {param.requires_grad}', file=f)
 
+    # TODO: make it conpatible with SFTConfig (`from trl import SFTConfig`)
+    # for `trl` of newer version, `TrainingArguments` leads to an error of agument name mismatch,
+    # and we should use `SFTConfig` instead.
     training_args = TrainingArguments(
         output_dir=args.output_dir,
         num_train_epochs=args.num_train_epochs,
-        optim = args.optimizer,
+        optim=args.optimizer,
         learning_rate=args.learning_rate,
         warmup_ratio=args.warmup_ratio,
         lr_scheduler_type=args.lr_scheduler_type,
@@ -336,6 +348,8 @@ def train():
         #     quantization_config=quantization_config,
         # ),
     )
+    rank0_print('is_deepspeed_enabled', trainer.is_deepspeed_enabled)
+    rank0_print('is_fsdp_enabled', trainer.is_fsdp_enabled)
 
     trainer.train()
     used_memory = round(torch.cuda.max_memory_reserved() / 1024 / 1024 / 1024, 3)
