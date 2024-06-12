@@ -285,7 +285,8 @@ def train():
             if ACCELERATE_USE_FSDP:
                 warnings.warn("``gradient_checkpointing`` may not work well with ``fsdp``. We will enable it for you. Please be sure you know what you are doing and aware of the potential errors.")
             model.enable_input_require_grads()
-            model.model.gradient_checkpointing = True
+            # model.model.gradient_checkpointing = True
+            model.model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
             rank0_print("Gradient checkpointing:", model.model.gradient_checkpointing)
 
     lora_namespan_exclude = eval(args.lora_namespan_exclude)
