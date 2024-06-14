@@ -1,8 +1,6 @@
-import argparse
 import copy
 import logging
 import os
-import sys
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 
@@ -12,11 +10,13 @@ import ujson as json
 from peft import LoraConfig, get_peft_model
 from PIL import Image
 from torch.utils.data import Dataset
+# If you get rid of AutoProcessor, the code dosen't work.
 from transformers import AutoProcessor, BitsAndBytesConfig, TrainingArguments
 
 from model.modeling_phi3_v import Phi3VForCausalLM, Phi3VConfig
 from model.processing_phi3_v import Phi3VProcessor
 from phi3v_trainer import Phi3VTrainer
+import ast
 
 import warnings
 
@@ -76,8 +76,8 @@ class TrainingArguments(transformers.TrainingArguments):
     lora_bias: str = "none"
     non_lora_lr: Optional[float] = None
     group_by_modality_length: bool = field(default=False)
-    lora_namespan_exclude: List[str] = field(default_factory=list, metadata={"help": "List of namespan to exclude for LoRA"})
-    num_lora_modules: int = 1
+    lora_namespan_exclude: str = field(default=None, metadata={"help": "List of namespan to exclude for LoRA"})
+    num_lora_modules: int = -1
 
 
 
@@ -108,7 +108,7 @@ class LazySupervisedDataset(Dataset):
     def __init__(
         self,
         data_path: str | list,
-        processor: transformers.PreTrainedTokenizer,
+        processor: transformers.ProcessorMixin,
         data_args: DataArguments,
         padding=True,
     ):
@@ -222,8 +222,7 @@ class DataCollatorForSupervisedDataset(object):
 
 ## Training
 def find_target_linear_names(model, num_lora_modules=-1, lora_namespan_exclude=["self_attn", "lm_head"], verbose=True):
-    linear_cls = torch.nn.Linear
-    # lora_module_names = set()
+    linear_cls = torch.nn.modules.Linear
     lora_module_names = []
     lora_namespan_exclude += ["vision_model", "img_projection"]
     for name, module in model.named_modules():
@@ -235,7 +234,8 @@ def find_target_linear_names(model, num_lora_modules=-1, lora_namespan_exclude=[
     if num_lora_modules > 0:
         lora_module_names = lora_module_names[-num_lora_modules:]
     if verbose:
-        rank0_print(f"Found {len(lora_module_names)} lora modules: {lora_module_names}")
+        # rank0_print(f"Found {len(lora_module_names)} lora modules: {lora_module_names}")
+        print(f"Found {len(lora_module_names)} lora modules: {lora_module_names}")
     return lora_module_names
 
 
@@ -333,8 +333,7 @@ def train():
     
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
 
-    if isinstance(training_args.lora_namespan_exclude, str):
-        training_args.lora_namespan_exclude = json.loads(training_args.lora_namespan_exclude)
+    training_args.lora_namespan_exclude = ast.literal_eval(training_args.lora_namespan_exclude)
 
     local_rank = training_args.local_rank
     compute_dtype = (torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32))
@@ -408,11 +407,11 @@ def train():
         model = get_peft_model(model, peft_config)
         # print(model)
 
-
-    processor = Phi3VProcessor.from_pretrained(model_args.model_id, 
+    processor = Phi3VProcessor.from_pretrained(model_args.model_id,
                                                cache_dir=training_args.cache_dir, 
                                                padding_side='right', 
                                                model_max_length=training_args.max_seq_length)
+    
 
     # use unk rather than eos token to prevent endless generation
     processor.tokenizer.pad_token = processor.tokenizer.unk_token
@@ -491,12 +490,15 @@ def train():
 
     trainer = Phi3VTrainer(
         model=model,
-        tokenizer=processor.tokenizer,
+        # tokenizer=processor.tokenizer,
+        processor=processor,
         args=training_args,
         **data_module
     )
 
-    trainer.train()
+    # trainer.train()
+
+    trainer.save_state()
 
     model.config.use_cache = True
     
