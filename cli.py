@@ -2,12 +2,11 @@ from transformers import TextStreamer
 from PIL import Image
 import torch
 from transformers import AutoModelForCausalLM, AutoProcessor, StoppingCriteria
-from model.modeling_phi3_v import Phi3VForCausalLM
-from model.processing_phi3_v import Phi3VProcessor
 import requests
 from io import BytesIO
 import argparse
 import warnings
+from utils import load_pretrained_model
 
 warnings.filterwarnings("ignore")
 
@@ -49,7 +48,6 @@ def load_image(image_file):
 
 def main(args):
 
-
     # This for the model that are fine-tuned with the original code
     # model_id = args.model_base
     # model = AutoModelForCausalLM.from_pretrained(model_id, device_map=args.device, trust_remote_code=True, torch_dtype=torch.float16)
@@ -60,20 +58,36 @@ def main(args):
 
     # processor = AutoProcessor.from_pretrained(model_id, trust_remote_code=True)
 
-    flash_attention="flash_attention_2"
 
-    model_id = args.model_base
+    # flash_attention="flash_attention_2"
+
+    # if args.disable_flash_attention:
+    #     flash_attention = "eager"
+
+    # if args.model_path:
+    #     model = Phi3VForCausalLM.from_pretrained(args.model_path, device_map=args.device, torch_dtype=torch.float16, _attn_implementation=flash_attention)
+    #     processor = Phi3VProcessor.from_pretrained(args.model_path)
+
+    # else:
+    #     model = AutoModelForCausalLM.from_pretrained(args.model_base, device_map=args.device, torch_dtype=torch.float16, _attn_implementation=flash_attention)
+    #     processor = AutoProcessor.from_pretrained(model_id)
+
+    use_flash_attn = True
 
     if args.disable_flash_attention:
-        flash_attention = "eager"
+        use_flash_attn = False
 
     if args.model_path:
-        model = Phi3VForCausalLM.from_pretrained(args.model_path, device_map=args.device, torch_dtype=torch.float16, _attn_implementation=flash_attention)
-        processor = Phi3VProcessor.from_pretrained(args.model_path)
+        processor, model = load_pretrained_model(model_path = args.model_path, device_map=args.device, 
+                                                 load_4bit=args.load_4bit, load_8bit=args.load_8bit,
+                                                 device=args.device, use_flash_attn=use_flash_attn
+        )
 
     else:
-        model = AutoModelForCausalLM.from_pretrained(model_id, device_map=args.device, torch_dtype=torch.float16, _attn_implementation=flash_attention)
-        processor = AutoProcessor.from_pretrained(model_id)
+        processor, model = load_pretrained_model(model_base=args.model_base, device_map=args.device, 
+                                                 load_4bit=args.load_4bit, load_8bit=args.load_8bit,
+                                                 device=args.device, use_flash_attn=use_flash_attn
+        )
 
     messages = [
     # {"role": "system", "content": "You are an AI assistant monitoring traffic situations through surveillance systems to support drivers in emergency situations."},
@@ -138,6 +152,8 @@ if __name__ == "__main__":
     parser.add_argument("--model-base", type=str, default="microsoft/Phi-3-vision-128k-instruct")
     parser.add_argument("--image-file", type=str, required=True)
     parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--load-8bit", action="store_true")
+    parser.add_argument("--load-4bit", action="store_true")
     parser.add_argument("--disable_flash_attention", action="store_true")
     parser.add_argument("--temperature", type=float, default=0)
     parser.add_argument("--repetition-penalty", type=float, default=1.0)
