@@ -15,7 +15,7 @@ from transformers import AutoProcessor, BitsAndBytesConfig, TrainingArguments
 
 from model.modeling_phi3_v import Phi3VForCausalLM, Phi3VConfig
 from model.processing_phi3_v import Phi3VProcessor
-from phi3v_trainer import Phi3VTrainer
+from trainer import Phi3VTrainer
 import ast
 
 import warnings
@@ -496,7 +496,7 @@ def train():
         **data_module
     )
 
-    # trainer.train()
+    trainer.train()
 
     trainer.save_state()
 
