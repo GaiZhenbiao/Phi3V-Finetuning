@@ -130,3 +130,4 @@ wrapt==1.16.0
 xformers==0.0.26.post1
 xxhash==3.4.1
 yarl==1.9.4
+colorama==0.4.6

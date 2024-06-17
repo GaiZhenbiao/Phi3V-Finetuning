@@ -3,6 +3,7 @@ import copy
 import logging
 import os
 import sys
+import colorama
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Sequence
 import warnings
@@ -223,7 +224,7 @@ def find_target_linear_names(model, num_lora_modules=-1, lora_namespan_exclude=[
             continue
         if isinstance(module, linear_cls):
             lora_module_names.append(name)
-    
+
     if num_lora_modules > 0:
         lora_module_names = lora_module_names[-num_lora_modules:]
     if verbose:
@@ -237,7 +238,7 @@ def train():
     ACCELERATE_USE_FSDP = os.environ.get("ACCELERATE_USE_FSDP", "false") == "true"
 
     args = parser.parse_args()
-    rank0_print('Procession args\033[91m', args, '\033[0m')
+    rank0_print('args: ', colorama.Fore.BLUE, args, colorama.Style.RESET_ALL)
     if torch.cuda.is_bf16_supported():
         compute_dtype = torch.bfloat16
     else:
@@ -258,12 +259,12 @@ def train():
             bnb_4bit_quant_type="nf4",
             llm_int8_skip_modules=["img_projection"],
         )
-    
+
     model = Phi3VForCausalLM.from_pretrained(
         args.model_id,
-        torch_dtype=compute_dtype, 
+        torch_dtype=compute_dtype,
         device_map=f"cuda:{local_rank}",
-        # trust_remote_code=True, 
+        # trust_remote_code=True,
         # low_cpu_mem_usage=True,
         config=config,
         quantization_config=quantization_config
@@ -274,16 +275,13 @@ def train():
         model.config.torch_dtype = torch.bfloat16
         from peft import prepare_model_for_kbit_training
         model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=args.gradient_checkpointing, gradient_checkpointing_kwargs={"use_reentrant": False})
-    
+
     if args.gradient_checkpointing:
-        if args.deepspeed_config is not None and 'zero2' in args.deepspeed_config:
-            warnings.warn("``zero2` with `gradient_checkpointing` may lead to errors in some situations, so we disable `gradient_checkpointing` for `zero2` by default. You are welcome to hack this logic and test if the process works as expected (and you may need to comment `model.enable_input_require_grads()`).")
-        else:
-            if ACCELERATE_USE_FSDP:
-                warnings.warn("``gradient_checkpointing`` may not work well with ``fsdp``. We will enable it for you. Please be sure you know what you are doing and aware of the potential errors.")
-            model.enable_input_require_grads()
-            model.model.gradient_checkpointing = True
-            rank0_print("Gradient checkpointing:", model.model.gradient_checkpointing)
+        if ACCELERATE_USE_FSDP:
+            warnings.warn("``gradient_checkpointing`` may not work well with ``fsdp``. We will enable it for you. Please be sure you know what you are doing and aware of the potential errors.")
+        model.enable_input_require_grads()
+        model.model.gradient_checkpointing = True
+        rank0_print("Gradient checkpointing:", model.model.gradient_checkpointing)
 
     lora_namespan_exclude = eval(args.lora_namespan_exclude)
     peft_config = LoraConfig(
